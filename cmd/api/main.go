@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	
 	"product-catalog/internal/config"
 	"product-catalog/internal/database"
 	"product-catalog/internal/routes"
@@ -17,6 +19,11 @@ func main() {
 	router := gin.Default()
 	routes.RegisterRoutes(router, db)
 
-	log.Println("🚀 Server running on port", cfg.Port)
-	router.Run(":" + cfg.Port)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // valor por defecto para correr localmente
+	}
+	log.Println("🚀 Server running on port", port)
+	router.Run(":" + port)
+
 }
