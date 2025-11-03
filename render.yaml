@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: product-catalog
-    env: go
-    buildCommand: go build -o app ./cmd/api
-    startCommand: ./app
