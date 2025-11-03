@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: my-go-app
+    env: go
+    buildCommand: go build -o main .
+    startCommand: ./main
