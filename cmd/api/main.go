@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	
 	"product-catalog/internal/config"
 	"product-catalog/internal/database"
