@@ -14,9 +14,17 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("⚠️ No .env file found, using system env vars")
+	// Solo cargar .env en desarrollo local
+	// En producción (Render) esto se ignora automáticamente
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("⚠️ Error loading .env file:", err)
+		} else {
+			log.Println("✅ .env file loaded successfully")
+		}
+	} else {
+		log.Println("🌐 Using system environment variables")
 	}
 
 	return &Config{
