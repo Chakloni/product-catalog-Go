@@ -1,79 +1,170 @@
 package handlers
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-	"time"
+    "net/http"
+    "time"
 
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
+    "github.com/gin-gonic/gin"
+    "go.mongodb.org/mongo-driver/bson/primitive"
 
-	"product-catalog/internal/cache"
-	"product-catalog/internal/models"
-	"product-catalog/internal/repository"
+    "path/to/your/project/internal/services"
+    "path/to/your/project/internal/models"
 )
 
 type ProductHandler struct {
-	repo  *repository.ProductRepository
-	cache *cache.Cache
+    ProductService services.ProductService
 }
 
-func NewProductHandler(repo *repository.ProductRepository) *ProductHandler {
-	return &ProductHandler{
-		repo:  repo,
-		cache: cache.Get(),
-	}
+func NewProductHandler(ps services.ProductService) *ProductHandler {
+    return &ProductHandler{
+        ProductService: ps,
+    }
 }
 
-// CreateProduct crea un nuevo producto
+// CreateProduct handles POST /v1/products
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	var product models.Product
-	
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    var req models.ProductCreateRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	if err := h.repo.Create(c.Request.Context(), &product); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
-		return
-	}
+    // mapear a modelo interno
+    prod := models.Product{
+        SKU:         req.SKU,
+        Name:        req.Name,
+        Description: req.Description,
+        Category:    req.Category,
+        PriceCents:  req.PriceCents,
+        Currency:    req.Currency,
+        Stock:       req.Stock,
+        Images:      req.Images,
+        Attributes:  req.Attributes,
+        IsActive:    true,
+        CreatedAt:   time.Now(),
+        UpdatedAt:   time.Now(),
+    }
 
-	// Invalidar caché de listados
-	h.cache.DeleteByPrefix("products:list:")
+    created, err := h.ProductService.Create(c.Request.Context(), &prod)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	c.JSON(http.StatusCreated, product)
+    c.JSON(http.StatusCreated, created)
 }
 
-// GetProduct obtiene un producto por ID (con caché)
-func (h *ProductHandler) GetProduct(c *gin.Context) {
-	productID := c.Param("id")
-	cacheKey := fmt.Sprintf("product:%s", productID)
-
-	// Intentar obtener del caché
-	if cachedProduct, found := h.cache.GetValue(cacheKey); found {
-		c.JSON(http.StatusOK, cachedProduct)
-		return
-	}
-
-	// Si no está en caché, buscar en DB
-	product, err := h.repo.FindByID(c.Request.Context(), productID)
-	if err != nil {
-		if err.Error() == "product not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get product"})
-		return
-	}
-
-	// Guardar en caché por 5 minutos
-	h.cache.Set(cacheKey, product, 5*time.Minute)
-
-	c.JSON(http.StatusOK, product)
-}
-
-// ListProducts lista productos con paginación y filtros (con caché)
+// ListProducts handles GET /v1/products
 func (h *ProductHandler) ListProducts(c *gin.Context) {
-	// Parsear parámetros
+    // Opciones de paginación, filtro, ordenamiento podrían venir via query params
+    page := c.DefaultQuery("page", "1")
+    size := c.DefaultQuery("size", "10")
+    // parsear page/size a int, etc. Omitido aquí por brevedad.
+
+    filter := make(map[string]interface{})
+    // Ejemplo: filtrar por category, price range, etc
+    if cat := c.Query("category"); cat != "" {
+        filter["category"] = cat
+    }
+
+    // Solo activos
+    filter["is_active"] = true
+
+    // llamar al servicio
+    result, err := h.ProductService.List(c.Request.Context(), filter, page, size)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, result)
+}
+
+// GetProduct handles GET /v1/products/:id
+func (h *ProductHandler) GetProduct(c *gin.Context) {
+    idParam := c.Param("id")
+    objID, err := primitive.ObjectIDFromHex(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+        return
+    }
+
+    prod, err := h.ProductService.GetByID(c.Request.Context(), objID)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+        return
+    }
+
+    c.JSON(http.StatusOK, prod)
+}
+
+// UpdateProduct handles PATCH /v1/products/:id
+func (h *ProductHandler) UpdateProduct(c *gin.Context) {
+    idParam := c.Param("id")
+    objID, err := primitive.ObjectIDFromHex(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+        return
+    }
+
+    var req models.ProductUpdateRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    // crear un map de campos a actualizar
+    updates := make(map[string]interface{})
+    if req.Name != nil {
+        updates["name"] = *req.Name
+    }
+    if req.Description != nil {
+        updates["description"] = *req.Description
+    }
+    if req.Category != nil {
+        updates["category"] = *req.Category
+    }
+    if req.PriceCents != nil {
+        updates["price_cents"] = *req.PriceCents
+    }
+    if req.Currency != nil {
+        updates["currency"] = *req.Currency
+    }
+    if req.Stock != nil {
+        updates["stock"] = *req.Stock
+    }
+    if req.Images != nil {
+        updates["images"] = *req.Images
+    }
+    if req.Attributes != nil {
+        updates["attributes"] = *req.Attributes
+    }
+
+    updates["updated_at"] = time.Now()
+
+    updated, err := h.ProductService.Update(c.Request.Context(), objID, updates)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, updated)
+}
+
+// DeleteProduct handles DELETE /v1/products/:id — soft delete
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+    idParam := c.Param("id")
+    objID, err := primitive.ObjectIDFromHex(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+        return
+    }
+
+    err = h.ProductService.SoftDelete(c.Request.Context(), objID, time.Now())
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusNoContent, gin.H{})
+}
