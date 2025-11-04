@@ -7,81 +7,52 @@ import (
     "github.com/gin-gonic/gin"
     "go.mongodb.org/mongo-driver/bson/primitive"
 
-    "path/to/your/project/internal/services"
-    "path/to/your/project/internal/models"
+    "product-catalog-Go/internal/models"
+    "product-catalog-Go/internal/repository"
 )
 
 type ProductHandler struct {
-    ProductService services.ProductService
+    Repo *repository.ProductRepository
 }
 
-func NewProductHandler(ps services.ProductService) *ProductHandler {
-    return &ProductHandler{
-        ProductService: ps,
-    }
+func NewProductHandler(repo *repository.ProductRepository) *ProductHandler {
+    return &ProductHandler{Repo: repo}
 }
 
-// CreateProduct handles POST /v1/products
+// POST /v1/products
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-    var req models.ProductCreateRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
+    var product models.Product
+    if err := c.ShouldBindJSON(&product); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 
-    // mapear a modelo interno
-    prod := models.Product{
-        SKU:         req.SKU,
-        Name:        req.Name,
-        Description: req.Description,
-        Category:    req.Category,
-        PriceCents:  req.PriceCents,
-        Currency:    req.Currency,
-        Stock:       req.Stock,
-        Images:      req.Images,
-        Attributes:  req.Attributes,
-        IsActive:    true,
-        CreatedAt:   time.Now(),
-        UpdatedAt:   time.Now(),
+    product.ID = primitive.NewObjectID()
+    product.CreatedAt = time.Now()
+    product.UpdatedAt = time.Now()
+    product.IsActive = true
+
+    if err := h.Repo.Create(c, &product); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
     }
 
-    created, err := h.ProductService.Create(c.Request.Context(), &prod)
+    c.JSON(http.StatusCreated, product)
+}
+
+// GET /v1/products
+func (h *ProductHandler) GetAllProducts(c *gin.Context) {
+    products, err := h.Repo.GetAll(c, true) // true → solo activos
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
 
-    c.JSON(http.StatusCreated, created)
+    c.JSON(http.StatusOK, products)
 }
 
-// ListProducts handles GET /v1/products
-func (h *ProductHandler) ListProducts(c *gin.Context) {
-    // Opciones de paginación, filtro, ordenamiento podrían venir via query params
-    page := c.DefaultQuery("page", "1")
-    size := c.DefaultQuery("size", "10")
-    // parsear page/size a int, etc. Omitido aquí por brevedad.
-
-    filter := make(map[string]interface{})
-    // Ejemplo: filtrar por category, price range, etc
-    if cat := c.Query("category"); cat != "" {
-        filter["category"] = cat
-    }
-
-    // Solo activos
-    filter["is_active"] = true
-
-    // llamar al servicio
-    result, err := h.ProductService.List(c.Request.Context(), filter, page, size)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-
-    c.JSON(http.StatusOK, result)
-}
-
-// GetProduct handles GET /v1/products/:id
-func (h *ProductHandler) GetProduct(c *gin.Context) {
+// GET /v1/products/:id
+func (h *ProductHandler) GetProductByID(c *gin.Context) {
     idParam := c.Param("id")
     objID, err := primitive.ObjectIDFromHex(idParam)
     if err != nil {
@@ -89,16 +60,16 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
         return
     }
 
-    prod, err := h.ProductService.GetByID(c.Request.Context(), objID)
+    product, err := h.Repo.GetByID(c, objID)
     if err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
         return
     }
 
-    c.JSON(http.StatusOK, prod)
+    c.JSON(http.StatusOK, product)
 }
 
-// UpdateProduct handles PATCH /v1/products/:id
+// PATCH /v1/products/:id
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
     idParam := c.Param("id")
     objID, err := primitive.ObjectIDFromHex(idParam)
@@ -107,51 +78,24 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
         return
     }
 
-    var req models.ProductUpdateRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
+    var updateData models.Product
+    if err := c.ShouldBindJSON(&updateData); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 
-    // crear un map de campos a actualizar
-    updates := make(map[string]interface{})
-    if req.Name != nil {
-        updates["name"] = *req.Name
-    }
-    if req.Description != nil {
-        updates["description"] = *req.Description
-    }
-    if req.Category != nil {
-        updates["category"] = *req.Category
-    }
-    if req.PriceCents != nil {
-        updates["price_cents"] = *req.PriceCents
-    }
-    if req.Currency != nil {
-        updates["currency"] = *req.Currency
-    }
-    if req.Stock != nil {
-        updates["stock"] = *req.Stock
-    }
-    if req.Images != nil {
-        updates["images"] = *req.Images
-    }
-    if req.Attributes != nil {
-        updates["attributes"] = *req.Attributes
-    }
+    updateData.UpdatedAt = time.Now()
 
-    updates["updated_at"] = time.Now()
-
-    updated, err := h.ProductService.Update(c.Request.Context(), objID, updates)
-    if err != nil {
+    if err := h.Repo.Update(c, objID, updateData); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
 
-    c.JSON(http.StatusOK, updated)
+    c.JSON(http.StatusOK, gin.H{"message": "product updated successfully"})
 }
 
-// DeleteProduct handles DELETE /v1/products/:id — soft delete
+// DELETE /v1/products/:id
+// Borrado lógico: cambia is_active = false
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
     idParam := c.Param("id")
     objID, err := primitive.ObjectIDFromHex(idParam)
@@ -160,11 +104,10 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
         return
     }
 
-    err = h.ProductService.SoftDelete(c.Request.Context(), objID, time.Now())
-    if err != nil {
+    if err := h.Repo.SoftDelete(c, objID); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
 
-    c.JSON(http.StatusNoContent, gin.H{})
+    c.JSON(http.StatusNoContent, nil)
 }
