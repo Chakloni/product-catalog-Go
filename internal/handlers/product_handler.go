@@ -7,8 +7,8 @@ import (
     "github.com/gin-gonic/gin"
     "go.mongodb.org/mongo-driver/bson/primitive"
 
-    "product-catalog-Go/internal/models"
-    "product-catalog-Go/internal/repository"
+    "product-catalog/internal/models"
+    "product-catalog/internal/repository"
 )
 
 type ProductHandler struct {
