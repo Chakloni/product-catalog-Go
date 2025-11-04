@@ -18,7 +18,6 @@ type Product struct {
 	Images      []string               `json:"images" bson:"images"`
 	Attributes  map[string]interface{} `json:"attributes" bson:"attributes"`
 	IsActive    bool                   `json:"is_active" bson:"is_active"`
-	IsDeleted   bool                   `json:"is_deleted" bson:"is_deleted"`
 	CreatedAt   time.Time              `json:"created_at" bson:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at" bson:"updated_at"`
 }

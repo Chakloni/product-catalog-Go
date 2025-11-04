@@ -75,12 +75,12 @@ Deleted products are **not physically removed** from the MongoDB database. Inste
 
 ```json
 {
-  "is_deleted": true,
+  "is_active": false,
   "updated_at": "2025-10-29T18:25:43Z"
 }
 ```
 
-By default, all **GET** queries to the database **automatically exclude** products where `"is_deleted"` is `true`.
+By default, all **GET** queries to the database **automatically exclude** products where `"is_active"` is `false`.
 
 -----
 
