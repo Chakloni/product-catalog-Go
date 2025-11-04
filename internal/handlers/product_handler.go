@@ -1,6 +1,7 @@
 package handlers
 
 import (
+    "context"
     "net/http"
     "time"
 
@@ -31,7 +32,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
     product.UpdatedAt = time.Now()
     product.IsActive = true
 
-    if err := h.Repo.Create(&product); err != nil {
+    if err := h.Repo.Create(context.Background(), &product); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
@@ -41,7 +42,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 // GET /v1/products
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
-    products, err := h.Repo.GetAll()
+    products, err := h.Repo.GetAllProducts(context.Background())
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -54,7 +55,7 @@ func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 func (h *ProductHandler) GetProductByID(c *gin.Context) {
     id := c.Param("id")
 
-    product, err := h.Repo.GetByID(id)
+    product, err := h.Repo.GetProductByID(context.Background(), id)
     if err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
         return
@@ -80,9 +81,6 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
     if updateData.Description != "" {
         update["description"] = updateData.Description
     }
-    if updateData.Price > 0 {
-        update["price"] = updateData.Price
-    }
     if updateData.Category != "" {
         update["category"] = updateData.Category
     }
@@ -90,9 +88,15 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
         update["stock"] = updateData.Stock
     }
 
+    // ⚠️ Si tu modelo tiene un campo de precio (por ejemplo PriceCents o UnitPrice),
+    // agrega algo así:
+    // if updateData.PriceCents > 0 {
+    //     update["price_cents"] = updateData.PriceCents
+    // }
+
     update["updated_at"] = time.Now()
 
-    if err := h.Repo.Update(id, update); err != nil {
+    if err := h.Repo.Update(context.Background(), id, update); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
@@ -104,7 +108,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
     id := c.Param("id")
 
-    if err := h.Repo.SoftDelete(id); err != nil {
+    if err := h.Repo.SoftDelete(context.Background(), id); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
