@@ -84,18 +84,10 @@ func createIndexes(ctx context.Context) error {
 			Keys:    bson.D{{Key: "sku", Value: 1}},
 			Options: options.Index().SetUnique(true).SetName("idx_sku_unique"),
 		},
-		// Índice en is_deleted (filtrado más común)
+		// Índice en is_active (filtrado más común)
 		{
-			Keys:    bson.D{{Key: "is_deleted", Value: 1}},
-			Options: options.Index().SetName("idx_is_deleted"),
-		},
-		// Índice compuesto para queries de listado
-		{
-			Keys: bson.D{
-				{Key: "is_deleted", Value: 1},
-				{Key: "is_active", Value: 1},
-			},
-			Options: options.Index().SetName("idx_deleted_active"),
+			Keys:    bson.D{{Key: "is_active", Value: 0}},
+			Options: options.Index().SetName("idx_is_active"),
 		},
 		// Índice en categoría para filtrado
 		{
@@ -105,7 +97,6 @@ func createIndexes(ctx context.Context) error {
 		// Índice compuesto para filtrado por categoría
 		{
 			Keys: bson.D{
-				{Key: "is_deleted", Value: 1},
 				{Key: "category", Value: 1},
 				{Key: "is_active", Value: 1},
 			},
