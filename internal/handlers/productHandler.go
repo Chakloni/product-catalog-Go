@@ -51,8 +51,13 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	defer cancel()
 
 	// Filters
-	filter := bson.M{}
-	filter["is_deleted"] = false
+	filter := bson.M{
+		"$or": []bson.M{
+			{"is_deleted": bson.M{"$exists": false}},
+			{"is_deleted": false},
+		},
+	}
+
 	if q := c.Query("q"); q != "" {
 		filter["$or"] = []bson.M{
 			{"name": bson.M{"$regex": q, "$options": "i"}},
