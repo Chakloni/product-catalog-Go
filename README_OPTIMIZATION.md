@@ -5,7 +5,6 @@
 ### 1. **Índices en MongoDB** (config.go)
 Se crearon 9 índices optimizados:
 - `sku` (único) - para búsquedas rápidas por SKU
-- `is_deleted` - filtrado de productos activos
 - `category` - filtrado por categoría
 - Índices compuestos para queries complejas
 - Índice de texto para búsqueda en nombre/descripción
@@ -164,11 +163,6 @@ En MongoDB Shell:
 ```javascript
 use product_catalog
 db.products.getIndexes()
-```
-
-### Ver uso de índices
-```javascript
-db.products.find({is_deleted: false}).explain("executionStats")
 ```
 
 ## 🎯 Mejores Prácticas
