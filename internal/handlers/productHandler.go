@@ -31,7 +31,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	product.ID = primitive.NewObjectID()
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
-	product.IsDeleted = false
+	product.IsActive = true
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -51,13 +51,8 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	defer cancel()
 
 	// Filters
-	filter := bson.M{
-		"$or": []bson.M{
-			{"is_deleted": bson.M{"$exists": false}},
-			{"is_deleted": false},
-		},
-	}
-
+	filter := bson.M{}
+	filter := bson.M{"is_active": true}
 	if q := c.Query("q"); q != "" {
 		filter["$or"] = []bson.M{
 			{"name": bson.M{"$regex": q, "$options": "i"}},
@@ -146,7 +141,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	defer cancel()
 
 	var product models.Product
-	err = h.Collection.FindOne(ctx, bson.M{"_id": objID, "is_deleted": false}).Decode(&product)
+	err = h.Collection.FindOne(ctx, bson.M{"_id": objID, "is_active": true}).Decode(&product)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
@@ -179,7 +174,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	defer cancel()
 
 	updateResult, err := h.Collection.UpdateOne(ctx,
-		bson.M{"_id": objID, "is_deleted": false},
+		bson.M{"_id": objID, "is_active": true},
 		bson.M{"$set": update})
 
 	if err != nil {
@@ -209,7 +204,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	update := bson.M{
 		"$set": bson.M{
-			"is_deleted": true,
+			"is_active": false,
 			"updated_at": time.Now(),
 		},
 	}
