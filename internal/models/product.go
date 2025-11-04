@@ -13,9 +13,9 @@ type Product struct {
 	Name        string             `json:"name" bson:"name" binding:"required"`
 	Description string             `json:"description,omitempty" bson:"description,omitempty"`
 	Category    string             `json:"category" bson:"category" binding:"required"`
-	PriceCents  int                `json:"price_cents" bson:"price_cents" binding:"required"`
+	PriceCents  int64              `json:"price_cents" bson:"price_cents" binding:"required"`
 	Currency    string             `json:"currency" bson:"currency" binding:"required"`
-	Stock       int                `json:"stock" bson:"stock"`
+	Stock       float64            `json:"stock" bson:"stock"`
 	Images      []string           `json:"images,omitempty" bson:"images,omitempty"`
 	Attributes  map[string]string  `json:"attributes,omitempty" bson:"attributes,omitempty"`
 	IsActive    bool               `json:"is_active" bson:"is_active"`
@@ -29,9 +29,9 @@ type ProductUpdate struct {
 	Name        *string            `json:"name,omitempty"`
 	Description *string            `json:"description,omitempty"`
 	Category    *string            `json:"category,omitempty"`
-	PriceCents  *int               `json:"price_cents,omitempty"`
+	PriceCents  *int64             `json:"price_cents,omitempty"`
 	Currency    *string            `json:"currency,omitempty"`
-	Stock       *int               `json:"stock,omitempty"`
+	Stock       *float64           `json:"stock,omitempty"`
 	Images      []string           `json:"images,omitempty"`
 	Attributes  map[string]string  `json:"attributes,omitempty"`
 	IsActive    *bool              `json:"is_active,omitempty"`
