@@ -51,7 +51,6 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	defer cancel()
 
 	// Filters
-	filter := bson.M{}
 	filter := bson.M{"is_active": true}
 	if q := c.Query("q"); q != "" {
 		filter["$or"] = []bson.M{
