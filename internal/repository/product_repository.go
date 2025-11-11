@@ -31,7 +31,7 @@ func (r *ProductRepository) Create(ctx context.Context, product *models.Product)
 	product.ID = primitive.NewObjectID()
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
-	product.IsActive = true
+	product.IsDeleted = false
 
 	_, err := r.collection.InsertOne(ctx, product)
 	return err
@@ -50,7 +50,7 @@ func (r *ProductRepository) FindByID(ctx context.Context, id string) (*models.Pr
 	var product models.Product
 	filter := bson.M{
 		"_id":        objID,
-		"is_active": true,
+		"is_deleted": false,
 	}
 
 	err = r.collection.FindOne(ctx, filter).Decode(&product)
@@ -70,7 +70,7 @@ func (r *ProductRepository) FindAll(ctx context.Context, page, pageSize int, cat
 	defer cancel()
 
 	// Construir filtro
-	filter := bson.M{"is_active": true}
+	filter := bson.M{"is_deleted": false}
 	
 	if category != "" {
 		filter["category"] = category
@@ -169,7 +169,7 @@ func (r *ProductRepository) Update(ctx context.Context, id string, update bson.M
 
 	filter := bson.M{
 		"_id":        objID,
-		"is_active": true,
+		"is_deleted": false,
 	}
 
 	result, err := r.collection.UpdateOne(
@@ -201,12 +201,12 @@ func (r *ProductRepository) SoftDelete(ctx context.Context, id string) error {
 
 	filter := bson.M{
 		"_id":        objID,
-		"is_active": true,
+		"is_deleted": false,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"is_active": false,
+			"is_deleted": true,
 			"updated_at": time.Now(),
 		},
 	}

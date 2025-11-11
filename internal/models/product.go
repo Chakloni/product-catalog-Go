@@ -15,10 +15,11 @@ type Product struct {
 	Category    string             `json:"category" bson:"category" binding:"required"`
 	PriceCents  int64              `json:"price_cents" bson:"price_cents" binding:"required"`
 	Currency    string             `json:"currency" bson:"currency" binding:"required"`
-	Stock       float64            `json:"stock" bson:"stock"`
+	Stock       int64              `json:"stock" bson:"stock"`
 	Images      []string           `json:"images,omitempty" bson:"images,omitempty"`
 	Attributes  map[string]string  `json:"attributes,omitempty" bson:"attributes,omitempty"`
 	IsActive    bool               `json:"is_active" bson:"is_active"`
+	IsDeleted   bool               `json:"-" bson:"is_deleted"`
 	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }
@@ -30,7 +31,7 @@ type ProductUpdate struct {
 	Category    *string            `json:"category,omitempty"`
 	PriceCents  *int64             `json:"price_cents,omitempty"`
 	Currency    *string            `json:"currency,omitempty"`
-	Stock       *float64           `json:"stock,omitempty"`
+	Stock       *int64             `json:"stock,omitempty"`
 	Images      []string           `json:"images,omitempty"`
 	Attributes  map[string]string  `json:"attributes,omitempty"`
 	IsActive    *bool              `json:"is_active,omitempty"`
