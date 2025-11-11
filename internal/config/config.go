@@ -61,7 +61,8 @@ func InitDB() error {
 	}
 
 	Client = client
-	Database = client.Database("product_catalog")
+	// Database = client.Database("product_catalog")
+	Database = os.Getenv("MONGO_DB")
 	Collection = Database.Collection("products")
 
 	log.Println("✅ Connected to MongoDB successfully")
